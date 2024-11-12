@@ -1,0 +1,35 @@
+{
+  "high_transaction_volume": {
+    "enabled": true,
+    "transactions_per_day_threshold": 10,
+    "crime_type": "Money Laundering"
+  },
+  "high_transaction_amount": {
+    "enabled": true,
+    "amount_threshold": 10000,
+    "crime_type": "Money Laundering"
+  },
+  "unusual_transaction_patterns": {
+    "enabled": true,
+    "international_transaction_threshold": 5,
+    "days_threshold": 1,
+    "crime_type": "Money Laundering"
+  },
+  "frequent_international_transactions": {
+    "enabled": true,
+    "international_to_domestic_ratio": 0.5,
+    "crime_type": "Terrorism Financing"
+  },
+  "rapid_consecutive_transactions": {
+    "enabled": true,
+    "time_interval_minutes": 5,
+    "transaction_count_threshold": 3,
+    "crime_type": "Money Laundering"
+  },
+  "location_mismatch": {
+    "enabled": true,
+    "time_interval_hours": 4,
+    "distance_threshold_km": 500,
+    "crime_type": "Human Trafficking"
+  }
+}
