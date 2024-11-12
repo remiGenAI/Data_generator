@@ -5,6 +5,7 @@ from faker import Faker
 from datetime import datetime, timedelta
 import numpy as np
 import json
+from collections import defaultdict
 
 # Load transaction parameters from config file
 with open("transaction_parameters.json", "r") as f:
@@ -21,10 +22,16 @@ max_cards_per_customer = config["max_cards_per_customer"]
 transaction_period_days = config["transaction_period_days"]
 alpha = config["transaction_amount_distribution"]["alpha"]
 beta = config["transaction_amount_distribution"]["beta"]
+max_transactions_per_card_per_day = config["max_transactions_per_card_per_day"]
+max_transactions_per_customer_per_day = config["max_transactions_per_customer_per_day"]
 
 # Generate Customers and Cards
 customers = [str(uuid.uuid4()) for _ in range(num_customers)]
 customer_cards = {customer: [str(uuid.uuid4()) for _ in range(random.randint(1, max_cards_per_customer))] for customer in customers}
+
+# Dictionary to track the number of transactions per card and per customer per day
+transactions_per_card_per_day = defaultdict(lambda: defaultdict(int))
+transactions_per_customer_per_day = defaultdict(lambda: defaultdict(int))
 
 # Generate transaction datetime within a specified period
 def generate_transaction_datetime():
@@ -43,6 +50,16 @@ def generate_transactions(n):
         customer = random.choice(customers)
         card = random.choice(customer_cards[customer])
         
+        # Generate a transaction date
+        transaction_date = generate_transaction_datetime()
+        transaction_date_str = transaction_date.strftime("%Y-%m-%d")
+        
+        # Check daily limits for the card and customer
+        if transactions_per_card_per_day[card][transaction_date_str] >= max_transactions_per_card_per_day:
+            continue
+        if transactions_per_customer_per_day[customer][transaction_date_str] >= max_transactions_per_customer_per_day:
+            continue
+        
         # Ensure the max transactions per card limit is respected
         card_transaction_count = len([t for t in data if t["card_id"] == card])
         if card_transaction_count >= max_transactions_per_card:
@@ -53,7 +70,7 @@ def generate_transactions(n):
             "customer_id": customer,
             "card_id": card,
             "transaction_type": random.choice(["debit_card", "credit_card", "online_banking", "mobile_app"]),
-            "transaction_date_time": generate_transaction_datetime(),
+            "transaction_date_time": transaction_date,
             "transaction_amount": generate_transaction_amount(),
             "currency": random.choice(["USD", "EUR", "GBP", "JPY", "CAD"]),
             "mcc": random.choice(["5411", "5812", "5921", "5999", "5735"]),
@@ -93,6 +110,11 @@ def generate_transactions(n):
             "session_id": str(uuid.uuid4()),
             "referral_source": random.choice(["email", "social media", "direct", "referral"])
         }
+        
+        # Update daily transaction counts
+        transactions_per_card_per_day[card][transaction_date_str] += 1
+        transactions_per_customer_per_day[customer][transaction_date_str] += 1
+        
         data.append(transaction)
     
     df = pd.DataFrame(data)
