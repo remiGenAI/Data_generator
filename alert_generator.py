@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from geopy.distance import geodesic
-from datetime import timedelta
 import json
+from math import radians, sin, cos, sqrt, atan2
+from datetime import timedelta
 
 # Load TM alert scenarios from config file
 with open("alert_scenarios.json", "r") as f:
@@ -13,6 +13,16 @@ df_transactions = pd.read_csv("synthetic_transactions.csv")
 
 # Convert transaction date-time to pandas datetime for easy manipulation
 df_transactions['transaction_date_time'] = pd.to_datetime(df_transactions['transaction_date_time'])
+
+# Haversine function to calculate distance in kilometers between two latitude/longitude points
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
 
 # Function to generate alerts based on scenarios
 def generate_alerts(transactions, config):
@@ -100,7 +110,8 @@ def generate_alerts(transactions, config):
             recent_transactions = customer_transactions[(customer_transactions['transaction_date_time'] >= transaction_time - timedelta(hours=config['location_mismatch']['time_interval_hours']))]
             for _, recent_txn in recent_transactions.iterrows():
                 recent_location = (recent_txn['geolocation.latitude'], recent_txn['geolocation.longitude'])
-                if geodesic(location, recent_location).km > config['location_mismatch']['distance_threshold_km']:
+                distance_km = haversine(location[0], location[1], recent_location[0], recent_location[1])
+                if distance_km > config['location_mismatch']['distance_threshold_km']:
                     alerts.append({
                         "alert_id": f"A6-{i}",
                         "customer_id": customer_id,
