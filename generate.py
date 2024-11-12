@@ -1,4 +1,9 @@
+import pandas as pd
 import random
+from faker import Faker
+
+# Initialize Faker
+fake = Faker()
 
 def generate_numbers(num_type='integer', num_digits=10, unique_count=100, secondary_unique_count=None, secondary_digits=None):
     """
@@ -56,12 +61,23 @@ def generate_secondary_number(num_type, num_digits):
     else:
         raise ValueError("num_type must be 'integer' or 'float'")
 
-# Example usage
-# Generate 100 unique party keys, each with up to 5 unique account keys of 14 digits
+# Generate data: 2 unique party keys, each with a maximum of 5 account keys
 party_keys_with_accounts = generate_numbers(
-    num_type='integer', num_digits=10, unique_count=100, 
+    num_type='integer', num_digits=10, unique_count=2, 
     secondary_unique_count=5, secondary_digits=14
 )
 
+# Convert the generated data to a pandas DataFrame and add fake details
+data = []
 for party_key, account_keys in party_keys_with_accounts.items():
-    print(f"Party Key: {party_key} -> Account Keys: {account_keys}")
+    for account_key in account_keys:
+        data.append({
+            'party_key': party_key,
+            'account_key': account_key,
+            'name': fake.name(),
+            'dob': fake.date_of_birth(minimum_age=18, maximum_age=90),
+            'address': fake.address()
+        })
+
+df = pd.DataFrame(data)
+print(df)
