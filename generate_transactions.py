@@ -181,3 +181,19 @@ def generate_transactions(n):
             "ip_address": ip_address,
             "device_id": device_id,
             "user_agent": user_agent,
+            "session_id": str(uuid.uuid4()),
+            "referral_source": random.choice(["email", "social media", "direct", "referral"])
+        }
+        
+        # Update daily transaction counts
+        transactions_per_card_per_day[card][transaction_date_str] += 1
+        transactions_per_customer_per_day[customer][transaction_date_str] += 1
+        
+        data.append(transaction)
+    
+    df = pd.DataFrame(data)
+    return df
+
+# Generate the transactions DataFrame
+df = generate_transactions(num_transactions)
+df.head()
