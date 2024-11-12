@@ -3,7 +3,6 @@ import numpy as np
 from math import radians, sin, cos, sqrt, atan2
 from datetime import timedelta
 import json
-import ast  # To safely parse the dictionary strings
 
 # Load TM alert scenarios from config file
 with open("alert_scenarios.json", "r") as f:
@@ -14,12 +13,6 @@ df_transactions = pd.read_csv("synthetic_transactions.csv")
 
 # Convert transaction date-time to pandas datetime for easy manipulation
 df_transactions['transaction_date_time'] = pd.to_datetime(df_transactions['transaction_date_time'])
-
-# Parse the geolocation column to extract latitude and longitude
-# Assuming geolocation is stored as a string representation of a dictionary
-df_transactions['geolocation'] = df_transactions['geolocation'].apply(ast.literal_eval)  # Convert string to dictionary
-df_transactions['latitude'] = df_transactions['geolocation'].apply(lambda x: float(x['latitude']))
-df_transactions['longitude'] = df_transactions['geolocation'].apply(lambda x: float(x['longitude']))
 
 # Haversine function to calculate distance in kilometers between two latitude/longitude points
 def haversine(lat1, lon1, lat2, lon2):
@@ -44,6 +37,10 @@ def generate_alerts(transactions, config):
         currency = transaction['currency']
         location = (transaction['latitude'], transaction['longitude'])
         
+        # Skip transactions with missing geolocation data
+        if pd.isna(location[0]) or pd.isna(location[1]):
+            continue
+
         # Filter transactions for the same customer and card
         customer_transactions = transactions[transactions['customer_id'] == customer_id]
         card_transactions = transactions[transactions['card_id'] == card_id]
