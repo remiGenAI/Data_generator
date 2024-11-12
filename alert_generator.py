@@ -72,7 +72,7 @@ def generate_alerts(transactions, config):
         # Scenario 3: Unusual Transaction Patterns
         if config['unusual_transaction_patterns']['enabled']:
             recent_transactions = customer_transactions[(customer_transactions['transaction_date_time'] >= transaction_time - timedelta(days=config['unusual_transaction_patterns']['days_threshold']))]
-            international_transactions = recent_transactions[recent_transactions['merchant_location.country'] != 'UK']
+            international_transactions = recent_transactions[recent_transactions['merchant_country'] != 'UK']
             if len(international_transactions) > config['unusual_transaction_patterns']['international_transaction_threshold']:
                 alerts.append({
                     "alert_id": f"A3-{i}",
@@ -84,7 +84,7 @@ def generate_alerts(transactions, config):
         
         # Scenario 4: Frequent International Transactions
         if config['frequent_international_transactions']['enabled']:
-            domestic_count = len(customer_transactions[customer_transactions['merchant_location.country'] == 'UK'])
+            domestic_count = len(customer_transactions[customer_transactions['merchant_country'] == 'UK'])
             international_count = len(customer_transactions) - domestic_count
             if domestic_count > 0 and international_count / domestic_count > config['frequent_international_transactions']['international_to_domestic_ratio']:
                 alerts.append({
