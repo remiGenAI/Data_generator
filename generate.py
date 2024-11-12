@@ -14,7 +14,7 @@ def generate_numbers(num_type='integer', num_digits=10, unique_count=100, second
         num_type (str): Type of number ('integer' or 'float').
         num_digits (int): Number of digits for the primary number.
         unique_count (int): Number of unique primary values to generate.
-        secondary_unique_count (int, optional): Max unique secondary numbers per primary number.
+        secondary_unique_count (int, optional): Max unique secondary numbers per primary number, limited to 5.
         secondary_digits (int, optional): Number of digits for each secondary number if needed.
 
     Returns:
@@ -37,6 +37,10 @@ def generate_numbers(num_type='integer', num_digits=10, unique_count=100, second
         numbers.add(num)
 
     primary_numbers = list(numbers)
+    
+    # Limit secondary_unique_count to a maximum of 5
+    if secondary_unique_count:
+        secondary_unique_count = min(secondary_unique_count, 5)
     
     # If secondary numbers are requested, generate them for each primary number
     if secondary_unique_count and secondary_digits:
@@ -64,7 +68,8 @@ def generate_secondary_number(num_type, num_digits):
 # Generate data: 2 unique party keys, each with a maximum of 5 account keys
 party_keys_with_accounts = generate_numbers(
     num_type='integer', num_digits=10, unique_count=2, 
-    secondary_unique_count=5, secondary_digits=14
+    secondary_unique_count=10,  # Even if more than 5 is specified, only 5 will be generated
+    secondary_digits=14
 )
 
 # Convert the generated data to a pandas DataFrame and add fake details for each party key
