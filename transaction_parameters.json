@@ -1,0 +1,11 @@
+{
+  "num_transactions": 1000,
+  "num_customers": 100,
+  "max_transactions_per_card": 50,
+  "max_cards_per_customer": 3,
+  "transaction_period_days": 30,
+  "transaction_amount_distribution": {
+    "alpha": 1.2,
+    "beta": 200
+  }
+}
