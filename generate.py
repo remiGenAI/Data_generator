@@ -2,9 +2,14 @@ import pandas as pd
 import random
 from faker import Faker
 from datetime import datetime, timedelta
+import json
 
 # Initialize Faker
 fake = Faker()
+
+# Load configuration from config.json
+with open("config.json", "r") as f:
+    config = json.load(f)
 
 def generate_numbers(num_type='integer', num_digits=10, unique_count=100, secondary_digits=None):
     """
@@ -67,7 +72,7 @@ def generate_transaction_keys(account_key, max_transactions_per_day=200, num_day
     start_date = datetime.now() - timedelta(days=num_days)
     
     for day in range(num_days):
-        date = (start_date + timedelta(days=day)).strftime("%Y%m%d")
+        date = (start_date + timedelta(days=day)).strftime("%Y-%m-%d")
         
         transaction_keys = set()
         while len(transaction_keys) < random.randint(1, max_transactions_per_day):
@@ -75,10 +80,12 @@ def generate_transaction_keys(account_key, max_transactions_per_day=200, num_day
             transaction_keys.add(transaction_key)
         
         for txn_key in transaction_keys:
+            transaction_group = random.choice(config["transaction_groups"])  # Sample group from config
             transactions.append({
                 'account_key': account_key,
                 'transaction_key': txn_key,
-                'transaction_date': date
+                'transaction_date': date,
+                'transaction_group': transaction_group
             })
     
     return transactions
