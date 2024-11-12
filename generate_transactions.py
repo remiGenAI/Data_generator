@@ -24,6 +24,7 @@ alpha = config["transaction_amount_distribution"]["alpha"]
 beta = config["transaction_amount_distribution"]["beta"]
 max_transactions_per_card_per_day = config["max_transactions_per_card_per_day"]
 max_transactions_per_customer_per_day = config["max_transactions_per_customer_per_day"]
+max_merchants = config["max_merchants"]
 
 # Generate Customers, Cards, Customer Names, and Card Issuers
 customers = [str(uuid.uuid4()) for _ in range(num_customers)]
@@ -36,8 +37,19 @@ customer_names = {customer: fake.name() for customer in customers}
 possible_issuers = ["Bank of America", "Chase", "Wells Fargo", "CitiBank"]
 card_issuers = {card: random.choice(possible_issuers) for cards in customer_cards.values() for card in cards}
 
-# Dictionary to store consistent merchant information for each unique merchant_id
+# Pre-generate a limited number of unique merchants
 merchants = {}
+for _ in range(max_merchants):
+    merchant_id = str(uuid.uuid4())
+    merchants[merchant_id] = {
+        "merchant_name": fake.company(),
+        "merchant_location": {
+            "city": fake.city(),
+            "state": fake.state_abbr(),
+            "country": fake.country_code()
+        },
+        "merchant_terminal_id": "T" + str(random.randint(1000, 9999))
+    }
 
 # Dictionary to track the number of transactions per card and per customer per day
 transactions_per_card_per_day = defaultdict(lambda: defaultdict(int))
@@ -75,21 +87,8 @@ def generate_transactions(n):
         if card_transaction_count >= max_transactions_per_card:
             continue
 
-        # Generate a merchant ID and check if it exists in merchants dictionary
-        merchant_id = str(uuid.uuid4())
-        if merchant_id not in merchants:
-            # Generate new merchant details if not in dictionary
-            merchants[merchant_id] = {
-                "merchant_name": fake.company(),
-                "merchant_location": {
-                    "city": fake.city(),
-                    "state": fake.state_abbr(),
-                    "country": fake.country_code()
-                },
-                "merchant_terminal_id": "T" + str(random.randint(1000, 9999))
-            }
-        
-        # Retrieve merchant details from the dictionary
+        # Randomly select an existing merchant from the pre-generated merchants
+        merchant_id = random.choice(list(merchants.keys()))
         merchant_details = merchants[merchant_id]
         
         # Determine account type and corresponding card type
