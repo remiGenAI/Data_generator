@@ -67,16 +67,21 @@ party_keys_with_accounts = generate_numbers(
     secondary_unique_count=5, secondary_digits=14
 )
 
-# Convert the generated data to a pandas DataFrame and add fake details
+# Convert the generated data to a pandas DataFrame and add fake details for each party key
 data = []
 for party_key, account_keys in party_keys_with_accounts.items():
+    # Generate fake details only once per party_key
+    party_name = fake.name()
+    party_dob = fake.date_of_birth(minimum_age=18, maximum_age=90)
+    party_address = fake.address()
+    
     for account_key in account_keys:
         data.append({
             'party_key': party_key,
             'account_key': account_key,
-            'name': fake.name(),
-            'dob': fake.date_of_birth(minimum_age=18, maximum_age=90),
-            'address': fake.address()
+            'name': party_name,
+            'dob': party_dob,
+            'address': party_address
         })
 
 df = pd.DataFrame(data)
