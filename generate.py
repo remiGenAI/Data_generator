@@ -3,6 +3,7 @@ import random
 from faker import Faker
 from datetime import datetime, timedelta
 import json
+import numpy as np
 
 # Initialize Faker
 fake = Faker()
@@ -66,8 +67,8 @@ def generate_secondary_number(num_type, num_digits):
     else:
         raise ValueError("num_type must be 'integer' or 'float'")
 
-def generate_transaction_keys(account_key, max_transactions_per_day=200, num_days=1):
-    """Generate up to max_transactions_per_day unique 20-digit transaction keys per day."""
+def generate_transaction_keys(account_key, max_transactions_per_day=200, num_days=1, alpha=1.2, beta=200, round_percentage=0.1):
+    """Generate up to max_transactions_per_day unique 20-digit transaction keys per day with additional fields."""
     transactions = []
     start_date = datetime.now() - timedelta(days=num_days)
     
@@ -81,11 +82,37 @@ def generate_transaction_keys(account_key, max_transactions_per_day=200, num_day
         
         for txn_key in transaction_keys:
             transaction_group = random.choice(config["transaction_groups"])  # Sample group from config
+            
+            # Generate transaction amount using gamma distribution
+            amount = np.random.gamma(alpha, beta)
+            if random.random() < round_percentage:  # 10% of the amounts are rounded
+                amount = round(amount)
+            amount = round(amount, 2)
+            
+            # Determine debit_credit_flag based on transaction_group
+            debit_credit_flag = "DEB" if transaction_group.endswith("OUT") else "CRE"
+            
+            # Randomly sample channel_cd and dom_int_indicator
+            channel_cd = random.choice(["UNK", "ITL", "NET"])
+            dom_int_indicator = random.choice(["BEU", "UNK", "BIN"])
+            
+            # Weighted sampling for currency_type
+            currency_type = random.choices(
+                ["DOM", "UNK", "SGB"],
+                weights=[0.9, 0.05, 0.05],
+                k=1
+            )[0]
+            
             transactions.append({
                 'account_key': account_key,
                 'transaction_key': txn_key,
                 'transaction_date': date,
-                'transaction_group': transaction_group
+                'transaction_group': transaction_group,
+                'transaction_amount': amount,
+                'debit_credit_flag': debit_credit_flag,
+                'channel_cd': channel_cd,
+                'dom_int_indicator': dom_int_indicator,
+                'currency_type': currency_type
             })
     
     return transactions
