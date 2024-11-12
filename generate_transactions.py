@@ -25,9 +25,19 @@ beta = config["transaction_amount_distribution"]["beta"]
 max_transactions_per_card_per_day = config["max_transactions_per_card_per_day"]
 max_transactions_per_customer_per_day = config["max_transactions_per_customer_per_day"]
 
-# Generate Customers and Cards
+# Generate Customers, Cards, Customer Names, and Card Issuers
 customers = [str(uuid.uuid4()) for _ in range(num_customers)]
 customer_cards = {customer: [str(uuid.uuid4()) for _ in range(random.randint(1, max_cards_per_customer))] for customer in customers}
+
+# Map each customer ID to a unique name
+customer_names = {customer: fake.name() for customer in customers}
+
+# Map each card ID to a unique issuer
+possible_issuers = ["Bank of America", "Chase", "Wells Fargo", "CitiBank"]
+card_issuers = {card: random.choice(possible_issuers) for cards in customer_cards.values() for card in cards}
+
+# Dictionary to store consistent merchant information for each unique merchant_id
+merchants = {}
 
 # Dictionary to track the number of transactions per card and per customer per day
 transactions_per_card_per_day = defaultdict(lambda: defaultdict(int))
@@ -64,6 +74,32 @@ def generate_transactions(n):
         card_transaction_count = len([t for t in data if t["card_id"] == card])
         if card_transaction_count >= max_transactions_per_card:
             continue
+
+        # Generate a merchant ID and check if it exists in merchants dictionary
+        merchant_id = str(uuid.uuid4())
+        if merchant_id not in merchants:
+            # Generate new merchant details if not in dictionary
+            merchants[merchant_id] = {
+                "merchant_name": fake.company(),
+                "merchant_location": {
+                    "city": fake.city(),
+                    "state": fake.state_abbr(),
+                    "country": fake.country_code()
+                },
+                "merchant_terminal_id": "T" + str(random.randint(1000, 9999))
+            }
+        
+        # Retrieve merchant details from the dictionary
+        merchant_details = merchants[merchant_id]
+        
+        # Determine account type and corresponding card type
+        account_type = random.choice(["debit", "credit", "saving"])
+        if account_type == "debit":
+            card_type = "Visa"
+        elif account_type == "credit":
+            card_type = random.choice(["Visa", "MasterCard"])
+        elif account_type == "saving":
+            card_type = "Visa"
         
         transaction = {
             "transaction_id": str(uuid.uuid4()),
@@ -75,21 +111,17 @@ def generate_transactions(n):
             "currency": random.choice(["USD", "EUR", "GBP", "JPY", "CAD"]),
             "mcc": random.choice(["5411", "5812", "5921", "5999", "5735"]),
             "description": random.choice(["Grocery", "Restaurant", "Electronics", "Clothing", "Gas"]),
-            "account_type": random.choice(["savings", "checking", "credit"]),
+            "account_type": account_type,  # Set account type
             "account_balance": round(random.uniform(100.0, 10000.0), 2),
-            "card_type": random.choice(["Visa", "MasterCard", "Amex"]),
+            "card_type": card_type,  # Set card type based on account type
             "card_number_masked": "**** **** **** " + str(random.randint(1000, 9999)),
             "card_expiration_date": fake.credit_card_expire(),
-            "card_issuer": random.choice(["Bank of America", "Chase", "Wells Fargo", "CitiBank"]),
-            "cardholder_name": fake.name(),
-            "merchant_id": str(uuid.uuid4()),
-            "merchant_name": fake.company(),
-            "merchant_location": {
-                "city": fake.city(),
-                "state": fake.state_abbr(),
-                "country": fake.country_code()
-            },
-            "merchant_terminal_id": "T" + str(random.randint(1000, 9999)),
+            "card_issuer": card_issuers[card],  # Use the pre-generated card issuer
+            "cardholder_name": customer_names[customer],  # Use the pre-generated customer name
+            "merchant_id": merchant_id,
+            "merchant_name": merchant_details["merchant_name"],
+            "merchant_location": merchant_details["merchant_location"],
+            "merchant_terminal_id": merchant_details["merchant_terminal_id"],
             "payment_method": random.choice(["chip", "NFC", "swipe"]),
             "payment_channel": random.choice(["POS", "online", "mobile_app"]),
             "geolocation": {
