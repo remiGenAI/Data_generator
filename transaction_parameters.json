@@ -7,5 +7,7 @@
   "transaction_amount_distribution": {
     "alpha": 1.2,
     "beta": 200
-  }
+  },
+  "max_transactions_per_card_per_day": 5,
+  "max_transactions_per_customer_per_day": 10
 }
