@@ -1,0 +1,30 @@
+{
+  "unique_customers": 100,
+  "unique_accounts_per_customer": 5,
+  "transactions_per_account_per_day": 200,
+  "transaction_types": ["EFT-OUT", "EFT-INN", "IFT-OUT", "IFT-IN"],
+  "channels": ["UNK", "ITL", "NET"],
+  "demand_indicators": ["BEU", "UNK", "BIN"],
+  "sudexr": {
+    "DOM": 0.9,
+    "UNK": 0.05,
+    "SGB": 0.05
+  },
+  "rule_ids": {
+    "EFT-OUT": "AML-EFT-EFT-OUT-A-DO1-EAT",
+    "IFT-OUT": "AML-EFT-IFT-OUT-L-DAP-EAT",
+    "IFT-INN": "AML-EFT-IFT-INN-A-DAP-EAT",
+    "EFT-INN": "AML-EFT-IFT-INN-L-DAP-EAT"
+  },
+  "look_back_gaps": {
+    "AML-EFT-EFT-OUT-A-DO1-EAT": "2 days",
+    "AML-HBC-EFT-OUT-A-M01-CBS": "31 days",
+    "AML-EFT-IFT-INN-L-DAP-EAT": "2 days",
+    "AML-EFT-IFT-OUT-L-DAP-EAT": "5 days"
+  },
+  "gamma_distribution": {
+    "alpha": 1.2,
+    "beta": 200
+  },
+  "amount_rounding_percentage": 0.1
+}
