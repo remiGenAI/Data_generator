@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 from faker import Faker
+from datetime import datetime, timedelta
 
 # Initialize Faker
 fake = Faker()
@@ -60,12 +61,34 @@ def generate_secondary_number(num_type, num_digits):
     else:
         raise ValueError("num_type must be 'integer' or 'float'")
 
+def generate_transaction_keys(account_key, max_transactions_per_day=200, num_days=1):
+    """Generate up to max_transactions_per_day unique 20-digit transaction keys per day."""
+    transactions = []
+    start_date = datetime.now() - timedelta(days=num_days)
+    
+    for day in range(num_days):
+        date = (start_date + timedelta(days=day)).strftime("%Y%m%d")
+        
+        transaction_keys = set()
+        while len(transaction_keys) < random.randint(1, max_transactions_per_day):
+            transaction_key = f"{account_key}{random.randint(10**5, 10**6 - 1)}"  # Ensures 20-digit uniqueness
+            transaction_keys.add(transaction_key)
+        
+        for txn_key in transaction_keys:
+            transactions.append({
+                'account_key': account_key,
+                'transaction_key': txn_key,
+                'transaction_date': date
+            })
+    
+    return transactions
+
 # Generate data: 2 unique party keys, each with a random number (1 to 5) of account keys
 party_keys_with_accounts = generate_numbers(
     num_type='integer', num_digits=10, unique_count=2, secondary_digits=14
 )
 
-# Convert the generated data to a pandas DataFrame and add fake details for each party key
+# Convert the generated data to a pandas DataFrame and add fake details for each party key and account transactions
 data = []
 for party_key, account_keys in party_keys_with_accounts.items():
     # Generate fake details only once per party_key
@@ -74,13 +97,22 @@ for party_key, account_keys in party_keys_with_accounts.items():
     party_address = fake.address()
     
     for account_key in account_keys:
-        data.append({
+        # Add party details with each account
+        account_info = {
             'party_key': party_key,
             'account_key': account_key,
             'name': party_name,
             'dob': party_dob,
             'address': party_address
-        })
+        }
+        
+        # Generate transactions for each account_key
+        transactions = generate_transaction_keys(account_key, max_transactions_per_day=200, num_days=1)
+        
+        # Append each transaction with account and party details
+        for transaction in transactions:
+            record = {**account_info, **transaction}
+            data.append(record)
 
 df = pd.DataFrame(data)
 print(df)
