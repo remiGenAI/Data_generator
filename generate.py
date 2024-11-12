@@ -103,6 +103,11 @@ def generate_transaction_keys(account_key, max_transactions_per_day=200, num_day
                 k=1
             )[0]
             
+            # Sample alert_id and rule_id, get look_back period
+            alert_id_rep = random.choice(config["alert_ids"])
+            rule_id = random.choice(list(config["rule_ids"].keys()))
+            look_back_period = config["rule_ids"][rule_id]
+            
             transactions.append({
                 'account_key': account_key,
                 'transaction_key': txn_key,
@@ -112,7 +117,10 @@ def generate_transaction_keys(account_key, max_transactions_per_day=200, num_day
                 'debit_credit_flag': debit_credit_flag,
                 'channel_cd': channel_cd,
                 'dom_int_indicator': dom_int_indicator,
-                'currency_type': currency_type
+                'currency_type': currency_type,
+                'alert_id_rep': alert_id_rep,
+                'rule_id': rule_id,
+                'look_back_period': look_back_period
             })
     
     return transactions
