@@ -30,14 +30,21 @@ inbound_percentage = config.get("inbound_percentage", 10)  # Default to 10% if n
 
 # Generate Customers, Cards, Customer Names, and Card Issuers
 customers = [str(uuid.uuid4()) for _ in range(num_customers)]
-customer_cards = {customer: [str(uuid.uuid4()) for _ in range(random.randint(1, max_cards_per_customer))] for customer in customers}
+customer_cards = {
+    customer: [str(uuid.uuid4()) for _ in range(random.randint(1, max_cards_per_customer))]
+    for customer in customers
+}
 
 # Map each customer ID to a unique name
 customer_names = {customer: fake.name() for customer in customers}
 
 # Map each card ID to a unique issuer
 possible_issuers = ["Bank of America", "Chase", "Wells Fargo", "CitiBank"]
-card_issuers = {card: random.choice(possible_issuers) for cards in customer_cards.values() for card in cards}
+card_issuers = {
+    card: random.choice(possible_issuers)
+    for cards in customer_cards.values()
+    for card in cards
+}
 
 # Pre-generate a limited number of unique merchants
 merchants = {}
@@ -72,22 +79,38 @@ def generate_transactions(n):
     data = []
     for _ in range(n):
         # Decide if the transaction is an inbound payment based on the inbound percentage
-        is_inbound = random.choices([True, False], weights=[inbound_percentage, 100 - inbound_percentage])[0]
-        
+        is_inbound = random.choices(
+            [True, False], weights=[inbound_percentage, 100 - inbound_percentage]
+        )[0]
+
         # Common fields for both inbound and regular transactions
         customer = random.choice(customers)
         card = random.choice(customer_cards[customer])
         transaction_date = generate_transaction_datetime()
         transaction_date_str = transaction_date.strftime("%Y-%m-%d")
-        
+
         # Check daily limits for the card and customer
         if transactions_per_card_per_day[card][transaction_date_str] >= max_transactions_per_card_per_day:
             continue
         if transactions_per_customer_per_day[customer][transaction_date_str] >= max_transactions_per_customer_per_day:
             continue
 
-        # Generate transaction details for inbound payments
+        # Ensure the max transactions per card limit is respected
+        card_transaction_count = len([t for t in data if t["card_id"] == card])
+        if card_transaction_count >= max_transactions_per_card:
+            continue
+
         if is_inbound:
+            # Generate sender information
+            sender_name = fake.name()
+            sender_account_number = "****" + str(random.randint(1000, 9999))
+            sender_bank = random.choice(possible_issuers)
+            sender_location = {
+                "city": fake.city(),
+                "state": fake.state_abbr(),
+                "country": fake.country()
+            }
+
             transaction = {
                 "transaction_id": str(uuid.uuid4()),
                 "customer_id": customer,
@@ -99,16 +122,22 @@ def generate_transactions(n):
                 "description": "Inbound Payment",
                 "account_balance": round(random.uniform(100.0, 10000.0), 2),
                 "transaction_status": "approved",
+                "payment_channel": "bank_transfer",
+                "fraud_risk_score": 0,
+                # New fields for sender information
+                "sender_name": sender_name,
+                "sender_account_number": sender_account_number,
+                "sender_bank": sender_bank,
+                "sender_location": sender_location,
+                # Fields set to None for inbound transactions
                 "merchant_id": None,
                 "merchant_name": None,
                 "merchant_location": None,
                 "payment_method": None,
-                "payment_channel": "bank_transfer",
                 "geolocation": None,
                 "authorization_code": None,
                 "authentication_method": None,
                 "3d_secure_status": None,
-                "fraud_risk_score": 0,
                 "failure_reason": None,
                 "exchange_rate": None,
                 "rewards_earned": 0,
@@ -116,26 +145,47 @@ def generate_transactions(n):
                 "device_id": None,
                 "user_agent": None,
                 "session_id": None,
-                "referral_source": None
+                "referral_source": None,
+                # Additional customer/card info
+                "account_type": None,
+                "card_type": None,
+                "card_number_masked": None,
+                "card_expiration_date": None,
+                "card_issuer": card_issuers[card],
+                "cardholder_name": customer_names[customer],
             }
         else:
             # Generate details for regular transactions
             merchant_id = random.choice(list(merchants.keys()))
             merchant_details = merchants[merchant_id]
-            
+
             account_type = random.choice(["debit", "credit", "saving"])
-            card_type = "Visa" if account_type == "debit" or account_type == "saving" else random.choice(["Visa", "MasterCard"])
+            card_type = (
+                "Visa"
+                if account_type in ["debit", "saving"]
+                else random.choice(["Visa", "MasterCard"])
+            )
             payment_channel = random.choice(["POS", "online", "mobile_app"])
-            payment_method = random.choice(["swipe", "NFC", "chip"]) if payment_channel == "POS" else "CNP"
-            three_d_secure_status = random.choice(["Passed", "Failed"]) if payment_channel == "online" else None
+            payment_method = (
+                random.choice(["swipe", "NFC", "chip"]) if payment_channel == "POS" else "CNP"
+            )
+            three_d_secure_status = (
+                random.choice(["Passed", "Failed"]) if payment_channel == "online" else None
+            )
             device_id = str(uuid.uuid4()) if payment_channel in ["online", "mobile_app"] else None
             ip_address = fake.ipv4() if payment_channel in ["online", "mobile_app"] else None
             user_agent = fake.user_agent() if payment_channel == "online" else None
-            
-            is_domestic = random.choices([True, False], weights=[domestic_percentage, 100 - domestic_percentage])[0]
+
+            is_domestic = random.choices(
+                [True, False], weights=[domestic_percentage, 100 - domestic_percentage]
+            )[0]
             country = "UK" if is_domestic else fake.country_code()
-            currency = "GBP" if is_domestic else random.choice(["USD", "EUR", "CAD", "JPY", "AUD"])
-            
+            currency = (
+                "GBP"
+                if is_domestic
+                else random.choice(["USD", "EUR", "CAD", "JPY", "AUD"])
+            )
+
             transaction = {
                 "transaction_id": str(uuid.uuid4()),
                 "customer_id": customer,
@@ -145,7 +195,9 @@ def generate_transactions(n):
                 "transaction_amount": generate_transaction_amount(),
                 "currency": currency,
                 "mcc": random.choice(["5411", "5812", "5921", "5999", "5735"]),
-                "description": random.choice(["Grocery", "Restaurant", "Electronics", "Clothing", "Gas"]),
+                "description": random.choice(
+                    ["Grocery", "Restaurant", "Electronics", "Clothing", "Gas"]
+                ),
                 "account_type": account_type,
                 "account_balance": round(random.uniform(100.0, 10000.0), 2),
                 "card_type": card_type,
@@ -156,38 +208,51 @@ def generate_transactions(n):
                 "merchant_id": merchant_id,
                 "merchant_name": merchant_details["merchant_name"],
                 "merchant_location": {
-                    "city": merchant_details["merchant_location"]["city"] if is_domestic else fake.city(),
-                    "state": merchant_details["merchant_location"]["state"] if is_domestic else fake.state_abbr(),
-                    "country": country
+                    "city": merchant_details["merchant_location"]["city"]
+                    if is_domestic
+                    else fake.city(),
+                    "state": merchant_details["merchant_location"]["state"]
+                    if is_domestic
+                    else fake.state_abbr(),
+                    "country": country,
                 },
                 "merchant_terminal_id": merchant_details["merchant_terminal_id"],
                 "payment_method": payment_method,
                 "payment_channel": payment_channel,
                 "geolocation": {
                     "latitude": fake.latitude(),
-                    "longitude": fake.longitude()
+                    "longitude": fake.longitude(),
                 },
                 "authorization_code": str(random.randint(100000, 999999)),
                 "authentication_method": random.choice(["PIN", "biometric", "password"]),
                 "3d_secure_status": three_d_secure_status,
                 "fraud_risk_score": random.randint(0, 100),
                 "transaction_status": random.choice(["approved", "pending", "failed"]),
-                "failure_reason": random.choice(["insufficient funds", "fraud detected", "technical error", None]),
+                "failure_reason": random.choice(
+                    ["insufficient funds", "fraud detected", "technical error", None]
+                ),
                 "exchange_rate": round(random.uniform(0.5, 1.5), 2) if not is_domestic else None,
                 "rewards_earned": random.randint(0, 10),
                 "ip_address": ip_address,
                 "device_id": device_id,
                 "user_agent": user_agent,
                 "session_id": str(uuid.uuid4()),
-                "referral_source": random.choice(["email", "social media", "direct", "referral"])
+                "referral_source": random.choice(
+                    ["email", "social media", "direct", "referral"]
+                ),
+                # Fields not applicable for regular transactions
+                "sender_name": None,
+                "sender_account_number": None,
+                "sender_bank": None,
+                "sender_location": None,
             }
-        
+
         # Update daily transaction counts
         transactions_per_card_per_day[card][transaction_date_str] += 1
         transactions_per_customer_per_day[customer][transaction_date_str] += 1
-        
+
         data.append(transaction)
-    
+
     df = pd.DataFrame(data)
     return df
 
